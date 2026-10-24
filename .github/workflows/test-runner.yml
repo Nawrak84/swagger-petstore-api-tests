@@ -2,8 +2,10 @@ name: Playwright Tests
 run-name: PetStore API Playwright Tests
 
 on:
-  push:
-  workflow_dispatch:
+schedule:
+  - cron: "*/5 * * * *" # Runs every 5 minutes
+    push:
+    workflow_dispatch:
 
 permissions:
   contents: read
