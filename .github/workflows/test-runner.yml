@@ -1,16 +1,17 @@
 name: Playwright Tests
 run-name: PetStore API Playwright Tests
 
-on:
-  schedule:
-    - cron: "*/5 * * * *" # Runs every 5 minutes
-      push:
-      workflow_dispatch:
-      inputs:
+"on":
+  push:
+  workflow_dispatch:
+    inputs:
       node_version:
         description: "Node.js version"
         required: true
         default: "22"
+        type: string
+  schedule:
+    - cron: "*/5 * * * *"
 
 permissions:
   contents: read
@@ -27,7 +28,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: ${{ inputs.node_version || '22' }}
           cache: npm
 
       - name: Install dependencies
@@ -37,9 +38,11 @@ jobs:
         run: npx playwright install --with-deps
 
       - name: Run Tests
-        run: npx playwright test --reporter=list,junit,html --output=playwright-report
+        run: npx playwright test --reporter=list,junit,html
         env:
           PLAYWRIGHT_JUNIT_OUTPUT_NAME: results.xml
+          PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report
+          PLAYWRIGHT_HTML_OPEN: never
 
       - name: Publish Playwright Test Report
         uses: dorny/test-reporter@v2
@@ -49,11 +52,14 @@ jobs:
           path: results.xml
           reporter: java-junit
           fail-on-error: true
-      - name: Upload Playwright Test Results
+
+      - name: Upload Playwright Reports
         uses: actions/upload-artifact@v4
-        if: success() || failure()
+        if: ${{ !cancelled() }}
         with:
-          name: test-results
+          name: playwright-reports
           path: |
             results.xml
-            playwright-report
+            playwright-report/
+          if-no-files-found: warn
+          retention-days: 14
