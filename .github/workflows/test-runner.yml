@@ -3,6 +3,11 @@ run-name: PetStore API Playwright Tests
 
 on:
   push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  checks: write
 
 jobs:
   Run-Tests:
@@ -16,14 +21,24 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
 
       - name: Run Tests
-        run: |
-          npm ci
-          PLAYWRIGHT_JUNIT_OUTPUT_NAME=results.xml npx playwright test --reporter=list,junit
+        run: npx playwright test --reporter=list,junit
+        env:
+          PLAYWRIGHT_JUNIT_OUTPUT_NAME: results.xml
 
-      - name: Create Test Summary
-        uses: test-summary/action@dist
-        if: success() || failure()
+      - name: Publish Playwright Test Report
+        uses: dorny/test-reporter@v2
+        if: ${{ !cancelled() }}
         with:
-          paths: results.xml
+          name: Playwright Test Results
+          path: results.xml
+          reporter: java-junit
+          fail-on-error: true
